@@ -1,16 +1,24 @@
 game = {}
 
 function game:enter()
+	love.graphics.setLineWidth(2)
+
 	local x, y = love.graphics.getWidth()/2, love.graphics.getHeight()/2
-    self.shapes = {{x - 200, y - 200, x - 200, y + 200, x + 200, y + 200, x + 200, y - 200}}
+    --self.shapes = {{x - 200, y - 200, x - 200, y + 200, x + 200, y + 200, x + 200, y - 200}}
+	
+	self.angle = math.rad(60)
+	local dy = math.tan(self.angle)*200
+	self.lines = {{x - 200, y + dy/2, x + 200, y + dy/2}, {x + 200, y + dy/2, x, y - dy/2}, {x, y - dy/2, x - 200, y + dy/2}}
 	
 	self.steps = 0
 	
-	self.canvas = love.graphics.newCanvas()
+	self.x, self.y = x, y
 	
-	self.canvas:renderTo(function()
-		love.graphics.polygon('line', self.shapes[1])
-	end)
+	--self.canvas = love.graphics.newCanvas()
+	
+	--self.canvas:renderTo(function()
+	--	love.graphics.polygon('line', self.shapes[1])
+	--end)
 end
 
 function game:update(dt)
@@ -23,45 +31,32 @@ function game:keypressed(key, isrepeat)
     end
 	
 	if key == ' ' then
-		local shapeCount = #self.shapes
+		--self.canvas:clear()
+	
+		local lineCount = #self.lines
 		
-		for i = 1, shapeCount do
-			local shape = self.shapes[i]
+		for i = lineCount, 1, -1 do
+			local line = self.lines[i]
+			local x1, y1, x2, y2 = line[1], line[2], line[3], line[4]
 			
-			if self.steps % 2 == 0 then
-				local x1, y1 = math.midpoint(shape[1], shape[2], shape[3], shape[4])
-				local x2, y2 = math.midpoint(shape[5], shape[6], shape[7], shape[8])
-				
-				table.insert(self.shapes, {x1, y1, shape[3], shape[4], shape[5], shape[6], x2, y2})
-				
-				self.shapes[i][3] = x1
-				self.shapes[i][4] = y1
-				self.shapes[i][5] = x2
-				self.shapes[i][6] = y2
-				
-				self.canvas:renderTo(function()
-					love.graphics.polygon('line', x1, y1, shape[3], shape[4], shape[5], shape[6], x2, y2)
-					love.graphics.polygon('line', self.shapes[i])
-				end)
-			else
-				local x1, y1 = math.midpoint(shape[1], shape[2], shape[7], shape[8])
-				local x2, y2 = math.midpoint(shape[3], shape[4], shape[5], shape[6])
-				
-				table.insert(self.shapes, {x1, y1, x2, y2, shape[5], shape[6], shape[7], shape[8]})
-				
-				self.shapes[i][5] = x1
-				self.shapes[i][6] = y1
-				self.shapes[i][7] = x2
-				self.shapes[i][8] = y2
-				
-				self.canvas:renderTo(function()
-					love.graphics.polygon('line', x1, y1, x2, y2, shape[5], shape[6], shape[7], shape[8])
-					love.graphics.polygon('line', self.shapes[i])
-				end)
-			end
+			
+			local p1x, p1y = x1 + (x2-x1)/3, y1 + (y2-y1)/3
+			local p2x, p2y = x1 + 2*(x2-x1)/3, y1 + 2*(y2-y1)/3
+			
+			local angle = math.angle(x1, y1, x2, y2)
+			local dist = math.dist(p1x, p1y, p2x, p2y)
+			
+			local p3x, p3y = p1x + math.cos(angle+self.angle)*dist, p1y + math.sin(angle+self.angle)*dist
+			
+			table.remove(self.lines, i)
+			
+			table.insert(self.lines, {x1, y1, p1x, p1y})
+			--table.insert(self.lines, {p1x, p1y, p2x, p2y})
+			table.insert(self.lines, {p2x, p2y, x2, y2})
+			
+			table.insert(self.lines, {p1x, p1y, p3x, p3y})
+			table.insert(self.lines, {p3x, p3y, p2x, p2y})
 		end
-		
-		self.steps = self.steps + 1
 	end
 end
 
@@ -72,10 +67,10 @@ function game:mousepressed(x, y, mbutton)
 end
 
 function game:draw()
-	--for i = 1, #self.shapes do
-	--	love.graphics.polygon('line', self.shapes[i])
-	--end
+	for i = 1, #self.lines do
+		love.graphics.line(self.lines[i])
+	end
 	
-	love.graphics.draw(self.canvas)
+	--love.graphics.draw(self.canvas)
 	love.graphics.print(love.timer.getFPS(), 5, 5)
 end
