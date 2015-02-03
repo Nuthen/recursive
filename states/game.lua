@@ -157,7 +157,10 @@ function game:draw()
 	love.graphics.print('Press "space" to iterate', 5, love.graphics.getHeight()-70)
 	love.graphics.print('3-9 to set sides', 5, love.graphics.getHeight()-120)
 	love.graphics.print('mousewheel to change angle', 5, love.graphics.getHeight()-170)
-	love.graphics.print('"t" to toggle extra line', 5, love.graphics.getHeight()-220)
+	
+	local status = 'off'
+	if self.connectPoints then status = 'on' end
+	love.graphics.print('"t" to toggle extra line: '..status, 5, love.graphics.getHeight()-220)
 	
 	love.graphics.print('(q/a) p3xModifier: '..self.p3xModifier, love.graphics.getWidth()-450, 5)
 	love.graphics.print('(w/s) p3yModifier: '..self.p3yModifier, love.graphics.getWidth()-450, 50)
