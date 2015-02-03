@@ -1,65 +1,69 @@
 game = {}
 
 function game:enter()
-	love.graphics.setLineWidth(2)
-
-	local x, y = love.graphics.getWidth()/2, love.graphics.getHeight()/2
-    --self.shapes = {{x - 200, y - 200, x - 200, y + 200, x + 200, y + 200, x + 200, y - 200}}
-	
-	self.angle = math.rad(60)
-	--local dy = math.tan(self.angle)*200
-	--self.lines = {{x - 200, y + dy/2, x + 200, y + dy/2}, {x + 200, y + dy/2, x, y - dy/2}, {x, y - dy/2, x - 200, y + dy/2}}
-	--self.lines = {{x - 200, y - 200, x - 200, y + 200}, {x - 200, y + 200, x + 200, y + 200}, {x + 200, y + 200, x + 200, y - 200}, {x + 200, y - 200, x - 200, y - 200}}
-	
-	self.lines = {}
-	
-	self.sides = 3
-	self.points = {}
-	
-	self.r = 200
-	
-	self.p3xModifier = 1
-	self.p3yModifier = 1
-	self.p4xModifier = 1
-	self.p4yModifier = 1
-	
-	self.connectPoints = false
-	
+	self:resetValues()
 	
 	self:start()
-	
-	
-	self.step = 0
-	
-	self.x, self.y = x, y
-	
-	--self.canvas = love.graphics.newCanvas()
-	
-	--self.canvas:renderTo(function()
-	--	love.graphics.polygon('line', self.shapes[1])
-	--end)
 end
 
 function game:start()
-	local x, y = love.graphics.getWidth()/2, love.graphics.getHeight()/2
+	self.canvas = love.graphics.newCanvas()
 
 	self.lines = {}
 	self.step = 0
-	--self.sides = 3
-	self.points = {}
 	
-	self.r = 200
+	self.r = love.graphics.getHeight()/2 * (4/5) -- the shape will nearly fill the screen vertically
+	
+	local x, y = love.graphics.getWidth()/2, love.graphics.getHeight()/2
+	local points = {}
 
+	-- find points for a regular polygon of n sides
 	for i = 1, self.sides do
 		local angle = math.rad((360/self.sides)*i)
 		local x1, y1 = x + math.cos(angle)*self.r, y + math.sin(angle)*self.r
-		table.insert(self.points, {x1, y1})
+		table.insert(points, x1)
+		table.insert(points, y1)
 	end
 	
-	for i = 1, #self.points-1 do
-		table.insert(self.lines, {self.points[i][1], self.points[i][2], self.points[i+1][1], self.points[i+1][2]})
+	-- store the lines between points
+	for i = 1, #points-2, 2 do
+		table.insert(self.lines, {points[i], points[i+1], points[i+2], points[i+3]})
 	end
-	table.insert(self.lines, {self.points[#self.points][1], self.points[#self.points][2], self.points[1][1], self.points[1][2]})
+	table.insert(self.lines, {points[#points-1], points[#points], points[1], points[2]})
+	
+	
+	game:drawCanvas()
+end
+
+function game:resetValues()
+	-- default values
+	self.sides = 3
+	self.angle = 60
+	self.angle1Multiplier = 1
+	self.angle2Multiplier = 1
+	self.removeNumerator = 1
+	self.removeDenominator = 3
+	self.maxSteps = 5 -- max iterations
+	self.connectPoints = false -- when false, angle 2 is irrelevant
+	self.cleanLines = true -- when true, canvas is cleared each iteration
+	
+	
+	love.graphics.setLineWidth(1)
+	love.graphics.setLineStyle('rough')
+	--love.graphics.setLineJoin('bevel')
+end
+
+function game:drawCanvas()
+	love.graphics.setLineWidth(1)
+
+	self.canvas:renderTo(function()
+		for i = 1, #self.lines do
+			local r, g, b, a = HSL((256/#self.lines)*i, 255, 200, 255)
+			love.graphics.setColor(r, g, b, a)
+			love.graphics.line(self.lines[i])
+		end
+		love.graphics.setColor(255, 255, 255)
+	end)
 end
 
 function game:update(dt)
@@ -72,9 +76,10 @@ function game:keypressed(key, isrepeat)
     end
 	
 	if key == ' ' then
-		if self.step < 5 then
-	
-			--self.canvas:clear()
+		if self.step < self.maxSteps then
+			if self.cleanLines then
+				self.canvas:clear()
+			end
 		
 			local lineCount = #self.lines
 			
@@ -82,32 +87,39 @@ function game:keypressed(key, isrepeat)
 				local line = self.lines[i]
 				local x1, y1, x2, y2 = line[1], line[2], line[3], line[4]
 				
+				local remov = self.removeNumerator/self.removeDenominator
+				local length = (1/2)-remov/2
 				
-				local p1x, p1y = x1 + (x2-x1)/3, y1 + (y2-y1)/3
-				local p2x, p2y = x1 + 2*(x2-x1)/3, y1 + 2*(y2-y1)/3
+				local p1x, p1y = x1 + length*(x2-x1), y1 + length*(y2-y1)
+				local p2x, p2y = x1 + (1-length)*(x2-x1), y1 + (1-length)*(y2-y1)
 				
 				local angle = math.angle(x1, y1, x2, y2)
 				local dist = math.dist(p1x, p1y, p2x, p2y)
 				
-				local p3x, p3y = p1x + math.cos(angle-self.p3xModifier*self.angle)*dist, p1y + math.sin(angle-self.p3yModifier*self.angle)*dist
-				local p4x, p4y = p2x + math.cos(angle+self.p4xModifier*self.angle)*dist, p2y + math.sin(angle+self.p4yModifier*self.angle)*dist
+				local p3x, p3y = p1x + math.cos(angle-math.rad(self.angle)*self.angle1Multiplier)*dist, p1y + math.sin(angle-math.rad(self.angle)*self.angle1Multiplier)*dist
+				local p4x, p4y = p2x + math.cos(angle-math.rad(self.angle)*self.angle2Multiplier)*dist, p2y + math.sin(angle-math.rad(self.angle)*self.angle2Multiplier)*dist
 				
 				table.remove(self.lines, i)
 				
-				table.insert(self.lines, {x1, y1, p1x, p1y})
+				table.insert(self.lines, i, {x1, y1, p1x, p1y})
 				--table.insert(self.lines, {p1x, p1y, p2x, p2y})
-				table.insert(self.lines, {p2x, p2y, x2, y2})
+				table.insert(self.lines, i+1, {p2x, p2y, x2, y2})
 				
-				table.insert(self.lines, {p1x, p1y, p3x, p3y})
+				table.insert(self.lines, i+2, {p1x, p1y, p3x, p3y})
 				if self.connectPoints then
-					table.insert(self.lines, {p3x, p3y, p4x, p4y})
-					table.insert(self.lines, {p4x, p4y, p2x, p2y})
+					table.insert(self.lines, i+3, {p3x, p3y, p4x, p4y})
+					table.insert(self.lines, i+4, {p4x, p4y, p2x, p2y})
 				else
-					table.insert(self.lines, {p3x, p3y, p2x, p2y})
+					table.insert(self.lines, i+5, {p3x, p3y, p2x, p2y})
 				end
 			end
 			
 			self.step = self.step+1
+			
+			
+			self.canvas:renderTo(function()
+				game:drawCanvas()
+			end)
 		end
 	end
 	
@@ -117,14 +129,16 @@ function game:keypressed(key, isrepeat)
 		self:start()
 	end
 	
-	if key == 'q' then self.p3xModifier = self.p3xModifier+1 end
-	if key == 'a' then self.p3xModifier = self.p3xModifier-1 end
-	if key == 'w' then self.p3yModifier = self.p3yModifier+1 end
-	if key == 's' then self.p3yModifier = self.p3yModifier-1 end
-	if key == 'e' then self.p4xModifier = self.p4xModifier+1 end
-	if key == 'd' then self.p4xModifier = self.p4xModifier-1 end
-	if key == 'r' then self.p4yModifier = self.p4yModifier+1 end
-	if key == 'f' then self.p4yModifier = self.p4yModifier-1 end
+	
+	if key == 'q' then self.angle1Multiplier = self.angle1Multiplier + 1 end
+	if key == 'a' then self.angle1Multiplier = self.angle1Multiplier - 1 end
+	if key == 'w' then self.angle2Multiplier = self.angle2Multiplier + 1 end
+	if key == 's' then self.angle2Multiplier = self.angle2Multiplier - 1 end
+	
+	if key == 'e' then self.removeNumerator = self.removeNumerator + 1 end
+	if key == 'd' then self.removeNumerator = self.removeNumerator - 1 end
+	if key == 'r' then self.removeDenominator = self.removeDenominator + 1 end
+	if key == 'f' then self.removeDenominator = self.removeDenominator - 1 end
 	
 	if key == 't' then
 		if self.connectPoints then
@@ -133,6 +147,27 @@ function game:keypressed(key, isrepeat)
 			self.connectPoints = true
 		end
 	end
+	
+	if key == 'g' then
+		if self.cleanLines then
+			self.cleanLines = false
+		else
+			self.cleanLines = true
+		end
+	end
+	
+	if key == 'f1' then
+		fullscreen, fstype = love.window.getFullscreen()
+		if not fullscreen then
+			love.window.setFullscreen(true, 'desktop')
+		else
+			love.window.setFullscreen(false)
+		end
+	end
+	
+	if key == 'f2' then
+		self:resetValues()
+	end
 end
 
 function game:mousepressed(x, y, mbutton)
@@ -140,30 +175,75 @@ function game:mousepressed(x, y, mbutton)
         return
     end
 	
-	if mbutton == 'wu' then self.angle = self.angle + math.rad(3) end
-	if mbutton == 'wd' then self.angle = self.angle - math.rad(3) end
+	if mbutton == 'wu' then self.angle = self.angle + 1 end
+	if mbutton == 'wd' then self.angle = self.angle - 1 end
 end
 
 function game:draw()
-	for i = 1, #self.lines do
-		love.graphics.line(self.lines[i])
-	end
+	love.graphics.setColor(255, 255, 255)
+	love.graphics.setFont(font[24])
 	
-	--love.graphics.draw(self.canvas)
+	
+	love.graphics.draw(self.canvas)
 	love.graphics.print('FPS: '..love.timer.getFPS(), 5, 5)
-	love.graphics.print('angle: '..math.deg(self.angle)..' degrees', 5, 50)
-	love.graphics.print('Iterations: '..self.step..'/5', 5, 95)
+	love.graphics.print('Iterations: '..self.step..'/'..self.maxSteps, 5, 35)
+	love.graphics.print('Angle: '..self.angle..' degrees', 5, 65)
+	love.graphics.print('(q/a) angle1: '..self.angle1Multiplier..'x', 5, 95)
+	love.graphics.print('(w/s) angle2: '..self.angle2Multiplier..'x', 5, 125)
+	love.graphics.print('(e/d) (r/f) remove %: '..self.removeNumerator..'/'..self.removeDenominator, 5, 155)
 	
-	love.graphics.print('Press "space" to iterate', 5, love.graphics.getHeight()-70)
-	love.graphics.print('3-9 to set sides', 5, love.graphics.getHeight()-120)
-	love.graphics.print('mousewheel to change angle', 5, love.graphics.getHeight()-170)
+	local status = 'off'
+	if self.cleanLines then status = 'on' end
+	love.graphics.print('(g) clean lines: '..status, 5, 185)
 	
 	local status = 'off'
 	if self.connectPoints then status = 'on' end
-	love.graphics.print('"t" to toggle extra line: '..status, 5, love.graphics.getHeight()-220)
+	love.graphics.print('(t) extra line: '..status, 5, 215)
 	
-	love.graphics.print('(q/a) p3xModifier: '..self.p3xModifier, love.graphics.getWidth()-450, 5)
-	love.graphics.print('(w/s) p3yModifier: '..self.p3yModifier, love.graphics.getWidth()-450, 50)
-	love.graphics.print('(e/d) p4xModifier: '..self.p4xModifier, love.graphics.getWidth()-450, 95)
-	love.graphics.print('(r/f) p4yModifier: '..self.p4yModifier, love.graphics.getWidth()-450, 140)
+	
+	love.graphics.print('Press "space" to iterate', 5, love.graphics.getHeight()-40)
+	love.graphics.print('3-9 to set sides', 5, love.graphics.getHeight()-70)
+	love.graphics.print('mousewheel to change angle', 5, love.graphics.getHeight()-100)
+	love.graphics.print('(f2) default values', 5, love.graphics.getHeight()-130)
+	love.graphics.print('(f1) fullsreen', 5, love.graphics.getHeight()-160)
+	
+	
+	
+	
+	-- preview
+	local dist = 150
+	local x1, y1 = love.graphics.getWidth() - 50 - dist, love.graphics.getHeight() - 100
+	local x2, y2 = x1 + dist, y1
+	
+	local remov = self.removeNumerator/self.removeDenominator
+	local length = (1/2)-remov/2
+	
+	local p1x, p1y = x1 + length*(x2-x1), y1 + length*(y2-y1)
+	local p2x, p2y = x1 + (1-length)*(x2-x1), y1 + (1-length)*(y2-y1)
+	
+	local angle = math.angle(x1, y1, x2, y2)
+	local dist = math.dist(p1x, p1y, p2x, p2y)
+	
+	local p3x, p3y = p1x + math.cos(angle-math.rad(self.angle)*self.angle1Multiplier)*dist, p1y + math.sin(angle-math.rad(self.angle)*self.angle1Multiplier)*dist
+	local p4x, p4y = p2x + math.cos(angle-math.rad(self.angle)*self.angle2Multiplier)*dist, p2y + math.sin(angle-math.rad(self.angle)*self.angle2Multiplier)*dist
+	
+	
+	
+	love.graphics.setColor(0, 255, 0)
+	love.graphics.line(p1x, p1y, p3x, p3y)
+	if self.connectPoints then
+		love.graphics.line(p3x, p3y, p4x, p4y)
+		love.graphics.line(p4x, p4y, p2x, p2y)
+	else
+		love.graphics.line(p3x, p3y, p2x, p2y)
+	end
+	
+	love.graphics.setLineWidth(4)
+	love.graphics.setColor(255, 255, 255)
+	love.graphics.line(x1, y1, x2, y2)
+	
+	if self.cleanLines then
+		love.graphics.setColor(255, 0, 0)
+		love.graphics.line(p1x, p1y, p2x, p2y)
+	end
 end
