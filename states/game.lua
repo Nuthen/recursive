@@ -12,8 +12,6 @@ function game:start()
 	self.lines = {}
 	self.step = 0
 	
-	self.r = love.graphics.getHeight()/2 * (4/5) -- the shape will nearly fill the screen vertically
-	
 	local x, y = love.graphics.getWidth()/2, love.graphics.getHeight()/2
 	local points = {}
 
@@ -46,6 +44,9 @@ function game:resetValues()
 	self.maxSteps = 5 -- max iterations
 	self.connectPoints = false -- when false, angle 2 is irrelevant
 	self.cleanLines = true -- when true, canvas is cleared each iteration
+	self.helpText = true
+	self.preview = true
+	self.r = 300 -- the shape will nearly fill the screen vertically
 	
 	
 	love.graphics.setLineWidth(1)
@@ -140,6 +141,9 @@ function game:keypressed(key, isrepeat)
 	if key == 'r' then self.removeDenominator = self.removeDenominator + 1 end
 	if key == 'f' then self.removeDenominator = self.removeDenominator - 1 end
 	
+	if key == 'y' then self.r = self.r + 20 self:start() end
+	if key == 'h' then self.r = self.r - 20 self:start() end
+	
 	if key == 't' then
 		if self.connectPoints then
 			self.connectPoints = false
@@ -160,13 +164,31 @@ function game:keypressed(key, isrepeat)
 		fullscreen, fstype = love.window.getFullscreen()
 		if not fullscreen then
 			love.window.setFullscreen(true, 'desktop')
+			self:start()
 		else
 			love.window.setFullscreen(false)
+			self:start()
 		end
 	end
 	
 	if key == 'f2' then
 		self:resetValues()
+	end
+	
+	if key == 'f3' then
+		if self.helpText then
+			self.helpText = false
+		else
+			self.helpText = true
+		end
+	end
+	
+	if key == 'f4' then
+		if self.preview then
+			self.preview = false
+		else
+			self.preview = true
+		end
 	end
 end
 
@@ -192,58 +214,71 @@ function game:draw()
 	love.graphics.print('(w/s) angle2: '..self.angle2Multiplier..'x', 5, 125)
 	love.graphics.print('(e/d) (r/f) remove %: '..self.removeNumerator..'/'..self.removeDenominator, 5, 155)
 	
+	love.graphics.print('(y/h) radius: '..self.r, 5, 185)
+	
 	local status = 'off'
 	if self.cleanLines then status = 'on' end
-	love.graphics.print('(g) clean lines: '..status, 5, 185)
+	love.graphics.print('(g) clean lines: '..status, 5, 215)
 	
 	local status = 'off'
 	if self.connectPoints then status = 'on' end
-	love.graphics.print('(t) extra line: '..status, 5, 215)
+	love.graphics.print('(t) extra line: '..status, 5, 245)
 	
 	
-	love.graphics.print('Press "space" to iterate', 5, love.graphics.getHeight()-40)
-	love.graphics.print('3-9 to set sides', 5, love.graphics.getHeight()-70)
-	love.graphics.print('mousewheel to change angle', 5, love.graphics.getHeight()-100)
-	love.graphics.print('(f2) default values', 5, love.graphics.getHeight()-130)
-	love.graphics.print('(f1) fullsreen', 5, love.graphics.getHeight()-160)
+	
+	if self.helpText then
+		love.graphics.print('(f1) fullsreen', 5, love.graphics.getHeight()-220)
+		love.graphics.print('(f2) default values', 5, love.graphics.getHeight()-190)
+		love.graphics.print('(f3) hide help text', 5, love.graphics.getHeight()-160)
+		love.graphics.print('(f4) hide preview', 5, love.graphics.getHeight()-130)
+		love.graphics.print('mousewheel to change angle', 5, love.graphics.getHeight()-100)
+		love.graphics.print('3-9 to set sides', 5, love.graphics.getHeight()-70)
+		love.graphics.print('Press "space" to iterate', 5, love.graphics.getHeight()-40)
+	end
 	
 	
 	
 	
 	-- preview
-	local dist = 150
-	local x1, y1 = love.graphics.getWidth() - 50 - dist, love.graphics.getHeight() - 100
-	local x2, y2 = x1 + dist, y1
-	
-	local remov = self.removeNumerator/self.removeDenominator
-	local length = (1/2)-remov/2
-	
-	local p1x, p1y = x1 + length*(x2-x1), y1 + length*(y2-y1)
-	local p2x, p2y = x1 + (1-length)*(x2-x1), y1 + (1-length)*(y2-y1)
-	
-	local angle = math.angle(x1, y1, x2, y2)
-	local dist = math.dist(p1x, p1y, p2x, p2y)
-	
-	local p3x, p3y = p1x + math.cos(angle-math.rad(self.angle)*self.angle1Multiplier)*dist, p1y + math.sin(angle-math.rad(self.angle)*self.angle1Multiplier)*dist
-	local p4x, p4y = p2x + math.cos(angle-math.rad(self.angle)*self.angle2Multiplier)*dist, p2y + math.sin(angle-math.rad(self.angle)*self.angle2Multiplier)*dist
-	
-	
-	
-	love.graphics.setColor(0, 255, 0)
-	love.graphics.line(p1x, p1y, p3x, p3y)
-	if self.connectPoints then
-		love.graphics.line(p3x, p3y, p4x, p4y)
-		love.graphics.line(p4x, p4y, p2x, p2y)
-	else
-		love.graphics.line(p3x, p3y, p2x, p2y)
-	end
-	
-	love.graphics.setLineWidth(4)
-	love.graphics.setColor(255, 255, 255)
-	love.graphics.line(x1, y1, x2, y2)
-	
-	if self.cleanLines then
-		love.graphics.setColor(255, 0, 0)
-		love.graphics.line(p1x, p1y, p2x, p2y)
+	if self.preview then
+		local dist = 150
+		local x1, y1 = love.graphics.getWidth() - 50 - dist, love.graphics.getHeight() - 100
+		local x2, y2 = x1 + dist, y1
+		
+		local remov = self.removeNumerator/self.removeDenominator
+		local length = (1/2)-remov/2
+		
+		local p1x, p1y = x1 + length*(x2-x1), y1 + length*(y2-y1)
+		local p2x, p2y = x1 + (1-length)*(x2-x1), y1 + (1-length)*(y2-y1)
+		
+		local angle = math.angle(x1, y1, x2, y2)
+		local dist = math.dist(p1x, p1y, p2x, p2y)
+		
+		local p3x, p3y = p1x + math.cos(angle-math.rad(self.angle)*self.angle1Multiplier)*dist, p1y + math.sin(angle-math.rad(self.angle)*self.angle1Multiplier)*dist
+		local p4x, p4y = p2x + math.cos(angle-math.rad(self.angle)*self.angle2Multiplier)*dist, p2y + math.sin(angle-math.rad(self.angle)*self.angle2Multiplier)*dist
+		
+		
+		
+		love.graphics.setColor(0, 255, 0)
+		love.graphics.line(p1x, p1y, p3x, p3y)
+		if self.connectPoints then
+			love.graphics.line(p3x, p3y, p4x, p4y)
+			love.graphics.line(p4x, p4y, p2x, p2y)
+		else
+			love.graphics.line(p3x, p3y, p2x, p2y)
+		end
+		
+		love.graphics.setLineWidth(4)
+		love.graphics.setColor(255, 255, 255)
+		love.graphics.line(x1, y1, x2, y2)
+		
+		if self.cleanLines then
+			love.graphics.setColor(255, 0, 0)
+			love.graphics.line(p1x, p1y, p2x, p2y)
+		end
+		
+		love.graphics.setColor(255, 255, 255)
+		
+		love.graphics.print('Preview', x1-50, y1-50)
 	end
 end
