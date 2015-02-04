@@ -6,6 +6,7 @@ tween = require 'libs.tween'
 console = require 'libs.console'
 require 'libs.util'
 require 'libs.generalmath'
+require 'libs.HSL'
 
 -- gamestates
 require 'states.menu'
