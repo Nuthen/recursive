@@ -35,8 +35,8 @@ end
 config = {
     debug = true,
 
-    gameTitle = "Untitled",
-    windowTitle = "Untitled",
+    gameTitle = "Recursive",
+    windowTitle = "Recursive",
     windowIcon = 'img/icon.png',
 
     -- see: http://love2d.org/wiki/love.graphics.setDefaultFilter

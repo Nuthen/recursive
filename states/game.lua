@@ -51,12 +51,9 @@ function game:resetValues()
 	
 	love.graphics.setLineWidth(1)
 	love.graphics.setLineStyle('rough')
-	--love.graphics.setLineJoin('bevel')
 end
 
 function game:drawCanvas()
-	love.graphics.setLineWidth(1)
-
 	self.canvas:renderTo(function()
 		for i = 1, #self.lines do
 			local r, g, b, a = HSL((256/#self.lines)*i, 255, 200, 255)
@@ -164,15 +161,16 @@ function game:keypressed(key, isrepeat)
 		fullscreen, fstype = love.window.getFullscreen()
 		if not fullscreen then
 			love.window.setFullscreen(true, 'desktop')
-			self:start()
+			--self:start()
 		else
 			love.window.setFullscreen(false)
-			self:start()
+			--self:start()
 		end
 	end
 	
 	if key == 'f2' then
 		self:resetValues()
+		self:start()
 	end
 	
 	if key == 'f3' then
@@ -281,4 +279,8 @@ function game:draw()
 		
 		love.graphics.print('Preview', x1-50, y1-50)
 	end
+end
+
+function game:resize(w, h)
+	self:start()
 end
