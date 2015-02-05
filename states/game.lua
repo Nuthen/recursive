@@ -46,7 +46,7 @@ function game:resetValues()
 	self.cleanLines = true -- when true, canvas is cleared each iteration
 	self.helpText = true
 	self.preview = true
-	self.r = 300 -- the shape will nearly fill the screen vertically
+	self.r = 300
 	
 	
 	love.graphics.setLineWidth(1)
@@ -56,7 +56,7 @@ end
 function game:drawCanvas()
 	self.canvas:renderTo(function()
 		for i = 1, #self.lines do
-			local r, g, b, a = HSL((256/#self.lines)*i, 255, 200, 255)
+			local r, g, b, a = HSL((256/#self.lines)*i, 255, 200, 255) -- progressively shifts through colors
 			love.graphics.setColor(r, g, b, a)
 			love.graphics.line(self.lines[i])
 		end
@@ -76,7 +76,7 @@ function game:keypressed(key, isrepeat)
 	if key == ' ' then
 		if self.step < self.maxSteps then
 			if self.cleanLines then
-				self.canvas:clear()
+				self.canvas:clear() -- cleans off extra lines
 			end
 		
 			local lineCount = #self.lines
@@ -85,15 +85,17 @@ function game:keypressed(key, isrepeat)
 				local line = self.lines[i]
 				local x1, y1, x2, y2 = line[1], line[2], line[3], line[4]
 				
-				local remov = self.removeNumerator/self.removeDenominator
-				local length = (1/2)-remov/2
+				local remov = self.removeNumerator/self.removeDenominator -- percent of each line removed
+				local length = (1/2)-remov/2 -- distance of line left after removed
 				
+				-- points of the part of the line removed
 				local p1x, p1y = x1 + length*(x2-x1), y1 + length*(y2-y1)
 				local p2x, p2y = x1 + (1-length)*(x2-x1), y1 + (1-length)*(y2-y1)
 				
 				local angle = math.angle(x1, y1, x2, y2)
 				local dist = math.dist(p1x, p1y, p2x, p2y)
 				
+				-- points that each triangle/quadrilateral extends to
 				local p3x, p3y = p1x + math.cos(angle-math.rad(self.angle)*self.angle1Multiplier)*dist, p1y + math.sin(angle-math.rad(self.angle)*self.angle1Multiplier)*dist
 				local p4x, p4y = p2x + math.cos(angle-math.rad(self.angle)*self.angle2Multiplier)*dist, p2y + math.sin(angle-math.rad(self.angle)*self.angle2Multiplier)*dist
 				
@@ -121,12 +123,14 @@ function game:keypressed(key, isrepeat)
 		end
 	end
 	
+	-- accepts numbers 3-9
 	if tonumber(key) and tonumber(key) > 2 and tonumber(key) < 10 then
 		self.sides = tonumber(key)
 		
 		self:start()
 	end
 	
+	if key == 'backspace' then self:start() end
 	
 	if key == 'q' then self.angle1Multiplier = self.angle1Multiplier + 1 end
 	if key == 'a' then self.angle1Multiplier = self.angle1Multiplier - 1 end
@@ -223,14 +227,15 @@ function game:draw()
 	love.graphics.print('(t) extra line: '..status, 5, 245)
 	
 	
-	
+	-- help text
 	if self.helpText then
+		love.graphics.print('Press "backspace" to reset', 5, love.graphics.getHeight()-250)
 		love.graphics.print('(f1) fullsreen', 5, love.graphics.getHeight()-220)
 		love.graphics.print('(f2) default values', 5, love.graphics.getHeight()-190)
 		love.graphics.print('(f3) hide help text', 5, love.graphics.getHeight()-160)
 		love.graphics.print('(f4) hide preview', 5, love.graphics.getHeight()-130)
-		love.graphics.print('mousewheel to change angle', 5, love.graphics.getHeight()-100)
-		love.graphics.print('3-9 to set sides', 5, love.graphics.getHeight()-70)
+		love.graphics.print('(mousewheel) change angle', 5, love.graphics.getHeight()-100)
+		love.graphics.print('(3-9) set sides', 5, love.graphics.getHeight()-70)
 		love.graphics.print('Press "space" to iterate', 5, love.graphics.getHeight()-40)
 	end
 	
@@ -266,7 +271,6 @@ function game:draw()
 			love.graphics.line(p3x, p3y, p2x, p2y)
 		end
 		
-		love.graphics.setLineWidth(4)
 		love.graphics.setColor(255, 255, 255)
 		love.graphics.line(x1, y1, x2, y2)
 		
